@@ -14,7 +14,7 @@ sg.theme("DarkAmber")
 #define the main window
 selected_folders = []
 lst = sg.Listbox(values=selected_folders, size=(60, 6), key="-LISTBOX-")
-layout = [  [sg.Checkbox("debug", default=False, key="-debug-", enable_events=True, change_submits=True)],
+layout = [  [sg.Checkbox("debug messages in logfile", default=False, key="-debug-", enable_events=True, change_submits=True)],
 			[sg.Text("Select the folder(s) to remove duplicates from:")], 
 			[sg.Text("Folder:"), sg.In(size=(60,1), enable_events=True, key="-FOLDER-"), sg.FolderBrowse()],
 			[sg.Button("Add folder to selection", key="Add"), sg.Button("Remove")],
