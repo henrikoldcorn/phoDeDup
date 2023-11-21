@@ -3,22 +3,32 @@ import io
 import PIL
 from PIL import Image
 import base64
+import logging
 
 def getAllFiles(path):
 	files = []
-	thisDir = os.scandir(path)
+	try:
+		thisDir = os.scandir(path)
+	except:
+		logging.debug("failed getAllFiles os.scandir() for: " + str(path))
+
 	for i in thisDir:
-		if i.is_file():
-			files.append(i.path)
-		elif i.is_dir():
-			for x in getAllFiles(i.path):
-				files.append(x)
+		try:
+			if i.is_file():
+				files.append(i.path)
+			elif i.is_dir():
+				for x in getAllFiles(i.path):
+					files.append(x)
+		except:
+			logging.debug("failed getAllFiles is_file or is_dir for: " + str(i.path))
+			
 	return files
 	
 def sha256sum(filename):
     with open(filename, 'rb', buffering=0) as f:
         return hashlib.file_digest(f, 'sha256').hexdigest()
-		
+
+
 def getDupes(directories, verbose=True) -> dict:
 	#directories to dedupe, print text?
 	hashes = {}
@@ -35,19 +45,13 @@ def getDupes(directories, verbose=True) -> dict:
 				hashes[h] = [x]
 
 	hashes_copy = {}
-	#print("hashes length {}".format(len(hashes)))
+
 	for key in hashes.keys():
 		#logging.info(key)
-		#print("key: " + key)
 		value = hashes[key]	#is a list
 		if len(value) > 1: # is there more than one entry?
-			#if len(hashes_copy) > 500:
-			#	print(len(hashes_copy))
-			#print("added " + str(key))
 			hashes_copy[key] = value
-			#print(value)
-	#print(hashes_copy)
-	#print("hashes_copy length {}".format(len(hashes_copy)))
+	
 	return hashes_copy
 	
 def convert_to_bytes(file_or_bytes, resize=None, fill=False):
@@ -64,7 +68,7 @@ def convert_to_bytes(file_or_bytes, resize=None, fill=False):
 	#https://github.com/PySimpleGUI/PySimpleGUI/blob/master/DemoPrograms/Demo_Image_Viewer_Thumbnails.py
 
 	if isinstance(file_or_bytes, str):
-			img = PIL.Image.open(file_or_bytes)
+		img = PIL.Image.open(file_or_bytes)
 	else:
 		try:
 			img = PIL.Image.open(io.BytesIO(base64.b64decode(file_or_bytes)))
