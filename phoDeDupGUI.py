@@ -3,6 +3,7 @@ import phoDeDupLib as pddl
 import os
 import logging
 
+
 #setup logfile
 logging.basicConfig(filename="phoDeDup.log", format='%(asctime)s %(levelname)-8s %(message)s', 
 	encoding="utf-8", level=logging.INFO)
@@ -15,10 +16,11 @@ sg.theme("DarkAmber")
 selected_folders = []
 lst = sg.Listbox(values=selected_folders, size=(60, 6), key="-LISTBOX-")
 layout = [  [sg.Checkbox("debug messages in logfile", default=False, key="-debug-", enable_events=True, change_submits=True)],
-			[sg.Text("Select the folder(s) to remove duplicates from:")], 
+			[sg.Text("Choose a folder to remove duplicates from using the 'Browse' button,\nthen 'Add folder to selection' to add it to the list.", size=(None, 2))], 
 			[sg.Text("Folder:"), sg.In(size=(60,1), enable_events=True, key="-FOLDER-"), sg.FolderBrowse()],
 			[sg.Button("Add folder to selection", key="Add"), sg.Button("Remove")],
 			[lst], 
+			[sg.Text("'Find duplicate images' will analyse the listed folder(s)\n for duplicate .jpg files, including within subfolders.", size=(None, 2))],
 			[sg.Button("Find duplicate images", key="Run"), sg.Button("Exit")]
 		]
 
@@ -45,7 +47,11 @@ def popup():
 		#with filenames and checkboxes vertically to the right
 		checkboxes = [ [sg.Checkbox(x, key=x)] for x in dupes[key] ]
 		#print(checkboxes[0][-1:])
-		item_list.append([sg.Image(data=pddl.convert_to_bytes(dupes[key][0], thumbsize)), 
+		try:
+			img = pddl.convert_to_bytes(dupes[key][0], thumbsize)
+		except:
+			img = bytes(0) # empty image, handles failed file read
+		item_list.append([sg.Image(data=img), 
 							sg.Button("Open\nimage", size=(5, 2), key="imagebutton"+dupes[key][0]),
 							sg.Column(checkboxes, pad=20)
 						])
@@ -53,8 +59,8 @@ def popup():
 	#item_list.append([sg.Text("No more items")])
 	#print("item_list {}".format(item_list[-2:]))
 	#column = 
-	layout_sec = [	[sg.Text("{} duplicated photos found.".format(len(dupes)))],
-					[sg.Text("Select files to delete. Selecting all items from a photo will delete all copies of that photo!")], 
+	layout_sec = [	[sg.Text("{} duplicated photo(s) found.".format(len(dupes)))],
+					[sg.Text("Select files to delete. You can select betwen none and all files for each photo.\nSelecting all items from a photo will delete all copies of that photo!", size=(None, 2))], 
 					[sg.Column(item_list, size=(1000, 500), scrollable=True, vertical_scroll_only=False)],
 					[sg.Button("Close"), sg.Button("Delete selected files", key="Delete")]
 				]
@@ -79,13 +85,15 @@ def popup():
 			if not ftd_counter:
 				sg.popup_ok("No files selected")
 			elif sg.popup_ok_cancel("Are you sure you want to delete {} files?".format(ftd_counter)) == "OK":
+				failure_message = ""
 				for f in files_to_delete:
 					try:
 						os.remove(f)
 						logging.info("deleted {}".format(f))
 					except:
 						logging.warning("failed to delete {}".format(f))
-				sg.popup_ok("Files deleted")
+						failure_message = "\nSome files were skipped due to an error;\nSee phoDeDup.log for details"
+				sg.popup_ok("Files deleted"+failure_message)
 				break
 	window_sec.close()
 
@@ -108,8 +116,9 @@ while True:
 			logging.getLogger().setLevel(logging.INFO)
 			logging.info("level set to INFO")
 	if event == "-FOLDER-":
-		dir = values["-FOLDER-"].replace("/", os.sep)
-		selected_folders.append(dir)
+		dir = values["-FOLDER-"].replace("/", os.sep) 	#fixes mixed / and \
+		if os.path.isdir(dir) and dir not in selected_folders:
+			selected_folders.append(dir)
 	if event == "Add" and dir:
 		window.Element("-LISTBOX-").Update(values=selected_folders)
 	if event == "Remove":
@@ -117,9 +126,10 @@ while True:
 		selected_folders.remove(val)
 		window.Element("-LISTBOX-").Update(values=selected_folders)
 	if event == "Run" and selected_folders:
-		logging.info("analysing {}".format(str(selected_folders)))
+		logging.info("analysing folders: " + ", ".join(selected_folders))
 		dupes = pddl.getDupes(selected_folders)
-		select_all = False
+		logging.debug(str(len(dupes)) + "dupes found")
+		#select_all = False
 		popup()
 		
 			
