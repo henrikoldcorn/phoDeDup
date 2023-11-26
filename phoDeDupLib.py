@@ -4,13 +4,16 @@ import PIL
 from PIL import Image
 import base64
 import logging
+from itertools import islice
+
+logger = logging.getLogger('pdd')
 
 def getAllFiles(path):
 	files = []
 	try:
 		thisDir = os.scandir(path)
 	except:
-		logging.debug("failed getAllFiles os.scandir() for: " + str(path))
+		logger.debug("failed getAllFiles os.scandir() for: " + str(path))
 
 	for i in thisDir:
 		try:
@@ -20,7 +23,7 @@ def getAllFiles(path):
 				for x in getAllFiles(i.path):
 					files.append(x)
 		except:
-			logging.debug("failed getAllFiles is_file or is_dir for: " + str(i.path))
+			logger.debug("failed getAllFiles is_file or is_dir for: " + str(i.path))
 			
 	return files
 	
@@ -47,7 +50,7 @@ def getDupes(directories, verbose=True) -> dict:
 	hashes_copy = {}
 
 	for key in hashes.keys():
-		#logging.info(key)
+		#logger.info(key)
 		value = hashes[key]	#is a list
 		if len(value) > 1: # is there more than one entry?
 			hashes_copy[key] = value
@@ -87,3 +90,10 @@ def convert_to_bytes(file_or_bytes, resize=None, fill=False):
 		img.save(bio, format="PNG")
 		del img
 		return bio.getvalue()
+
+
+def chunks(data, SIZE=500):
+    it = iter(data)
+    for i in range(0, len(data), SIZE):
+        yield {k:data[k] for k in islice(it, SIZE)}
+		
